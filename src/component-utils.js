@@ -31,3 +31,5 @@ var utils = {
         return parent.appendChild(document.importNode(new DOMParser().parseFromString(htmlString, 'text/html').body.childNodes[0], true));
     }
 };
+
+module.exports = utils;

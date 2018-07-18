@@ -1,3 +1,7 @@
+const utils = require('./component-utils'),
+      tooltipComponent = require('./tooltip-component'),
+      d3 = require('d3');
+
 var radvizComponent = function() {
     var config = {
         el: null,
@@ -264,3 +268,5 @@ var radvizComponent = function() {
 
     return exports;
 };
+
+module.exports = radvizComponent;

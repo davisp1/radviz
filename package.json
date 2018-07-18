@@ -1,0 +1,27 @@
+{
+  "name": "radviz",
+  "version": "1.0.0",
+  "description": "<p align=\"center\">     <img alt=\"Radviz Screenshot\" src=\"./img/radviz.jpg\" height=\"300\"/> <p>",
+  "directories": {
+    "example": "example",
+    "src": "./src"
+  },
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/davisp1/radviz.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/davisp1/radviz/issues"
+  },
+  "homepage": "https://github.com/davisp1/radviz#readme",
+  "devDependencies": {
+    "uglify-js": "^3.4.5",
+    "d3": "3.5.5"
+  }
+}
