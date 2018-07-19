@@ -7,9 +7,6 @@
     "src": "./src"
   },
   "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/davisp1/radviz.git"
@@ -21,7 +18,17 @@
   },
   "homepage": "https://github.com/davisp1/radviz#readme",
   "devDependencies": {
+    "babel-core": "^6.26.3",
+    "babel-loader": "^7.1.5",
+    "babel-preset-es2015": "^6.24.1",
+    "d3": "3.5.5",
     "uglify-js": "^3.4.5",
-    "d3": "3.5.5"
+    "webpack": "^4.16.1",
+    "webpack-cli": "^3.1.0",
+    "webpack-dev-server": "^3.1.4"
+  },
+  "scripts": {
+    "watch": "webpack --watch",
+    "start": "webpack-dev-server -d --hot --config webpack.config.js --watch"
   }
 }
