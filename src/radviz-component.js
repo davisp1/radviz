@@ -2,12 +2,18 @@ const utils = require('./component-utils'),
       tooltipComponent = require('./tooltip-component'),
       d3 = require('d3');
 
+/**
+ * 
+ * FIXME: still a different representation with d3 v3
+ * FIXME: fix events managment
+ */
+
 var radvizComponent = function() {
     var config = {
         el: null,
         size: 400,
         margin: 50,
-        colorScale: d3.scale.ordinal().range(['skyblue', 'orange', 'lime']),
+        colorScale: d3.scaleOrdinal().range(['skyblue', 'orange', 'lime']),
         colorAccessor: null,
         dimensions: [],
         drawLinks: true,
@@ -22,10 +28,11 @@ var radvizComponent = function() {
 
     var events = d3.dispatch('panelEnter', 'panelLeave', 'dotEnter', 'dotLeave');
 
-    var force = d3.layout.force()
-        .chargeDistance(0)
-        .charge(-60)
-        .friction(0.5);
+    var simulation = d3.forceSimulation()
+        .force("charge", d3.forceManyBody().strength(-60).distanceMax(0))
+        .force("link", d3.forceLink().id(function(d) { return d.index }).strength(function(d) { return d.value }))
+        .force("center", d3.forceCenter(config.size / 2, config.size / 2))
+        .velocityDecay(0.5);
 
     var render = function(data) {
         data = addNormalizedValues(data);
@@ -33,7 +40,7 @@ var radvizComponent = function() {
         var dimensionNamesNormalized = config.dimensions.map(function(d) {
             return d + normalizeSuffix;
         });
-        var thetaScale = d3.scale.linear().domain([0, dimensionNamesNormalized.length]).range([0, Math.PI * 2]);
+        var thetaScale = d3.scaleLinear().domain([0, dimensionNamesNormalized.length]).range([0, Math.PI * 2]);
 
         var chartRadius = config.size / 2 - config.margin;
         var nodeCount = data.length;
@@ -47,7 +54,8 @@ var radvizComponent = function() {
                 index: nodeCount + i,
                 x: x,
                 y: y,
-                fixed: true,
+                fx: x,
+                fy: y,
                 name: d
             };
         });
@@ -63,50 +71,37 @@ var radvizComponent = function() {
             });
         });
 
-        force.size([panelSize, panelSize])
-            .linkStrength(function(d) {
-                return d.value;
-            })
-            .nodes(data.concat(dimensionNodes))
-            .links(linksData)
-            .start();
+        simulation.nodes(data.concat(dimensionNodes))
+            .force("link").links(linksData)
 
         // Basic structure
-        var svg = d3.select(config.el)
+        const svg = d3.select(config.el)
             .append('svg')
-            .attr({
-                width: config.size,
-                height: config.size
-            });
+            .attr("width", config.size)
+            .attr("height", config.size);
 
         svg.append('rect')
             .classed('bg', true)
-            .attr({
-                width: config.size,
-                height: config.size
-            });
+            .attr("width", config.size)
+            .attr("height", config.size);
 
         var root = svg.append('g')
-            .attr({
-                transform: 'translate(' + [config.margin, config.margin] + ')'
-            });
+            .attr("transform", 'translate(' + [config.margin, config.margin] + ')');
 
         var panel = root.append('circle')
             .classed('panel', true)
-            .attr({
-                r: chartRadius,
-                cx: chartRadius,
-                cy: chartRadius
-            });
+            .attr("r", chartRadius)
+            .attr("cx", chartRadius)
+            .attr("cy", chartRadius);
 
         if(config.useRepulsion) {
             root.on('mouseenter', function(d) {
-                force.chargeDistance(80).alpha(0.2);
-                events.panelEnter();
+                simulation.alpha(0.5).force('charge').distanceMax(80);
+                //events.panelEnter();
             });
             root.on('mouseleave', function(d) {
-                force.chargeDistance(0).resume();
-                events.panelLeave();
+                simulation.alpha(0.5).force('charge').distanceMax(0);
+                //events.panelLeave();
             });
         }
 
@@ -123,25 +118,24 @@ var radvizComponent = function() {
             .data(data)
             .enter().append('circle')
             .classed('dot', true)
-            .attr({
-                r: config.dotRadius,
-                fill: function(d) {
+            .attr("r", config.dotRadius)
+            .attr("fill", function(d) {
                     return config.colorScale(config.colorAccessor(d));
                 }
-            })
+            )
             .on('mouseenter', function(d) {
                 if(config.useTooltip) {
                     var mouse = d3.mouse(config.el);
                     tooltip.setText(config.tooltipFormatter(d)).setPosition(mouse[0], mouse[1]).show();
                 }
-                events.dotEnter(d);
+                //events.dotEnter(d);
                 this.classList.add('active');
             })
             .on('mouseout', function(d) {
                 if(config.useTooltip) {
                     tooltip.hide();
                 }
-                events.dotLeave(d);
+                //events.dotLeave(d);
                 this.classList.remove('active');
             });
 
@@ -150,50 +144,30 @@ var radvizComponent = function() {
             .data(dimensionNodes)
             .enter().append('circle')
             .classed('label-node', true)
-            .attr({
-                cx: function(d) {
-                    return d.x;
-                },
-                cy: function(d) {
-                    return d.y;
-                },
-                r: 4
-            });
+            .attr("cx", function(d) { return d.x; })
+            .attr("cy", function(d) { return d.y; })
+            .attr("r", 4);
 
         var labels = root.selectAll('text.label')
             .data(dimensionNodes)
             .enter().append('text')
             .classed('label', true)
-            .attr({
-                x: function(d) {
-                    return d.x;
-                },
-                y: function(d) {
-                    return d.y;
-                },
-                'text-anchor': function(d) {
+            .attr('x', function(d) { return d.x; })
+            .attr('y', function(d) { return d.y; })
+            .attr('text-anchor', function(d) {
                     if(d.x > (panelSize * 0.4) && d.x < (panelSize * 0.6)) {
                         return 'middle';
                     } else {
                         return(d.x > panelSize / 2) ? 'start' : 'end';
                     }
-                },
-                'dominant-baseline': function(d) {
-                    return(d.y > panelSize * 0.6) ? 'hanging' : 'auto';
-                },
-                dx: function(d) {
-                    return(d.x > panelSize / 2) ? '6px' : '-6px';
-                },
-                dy: function(d) {
-                    return(d.y > panelSize * 0.6) ? '6px' : '-6px';
-                }
-            })
-            .text(function(d) {
-                return d.name;
-            });
+                })
+            .attr('dominant-baseline', function(d) { return(d.y > panelSize * 0.6) ? 'hanging' : 'auto'; })
+            .attr('dx', function(d) { return(d.x > panelSize / 2) ? '6px' : '-6px'; })
+            .attr('dy', function(d) { return(d.y > panelSize * 0.6) ? '6px' : '-6px'; })
+            .text(function(d) { return d.name; });
 
         // Update force
-        force.on('tick', function() {
+        simulation.on('tick', function() {
             if(config.drawLinks) {
                 links.attr({
                     x1: function(d) {
@@ -211,21 +185,18 @@ var radvizComponent = function() {
                 });
             }
 
-            nodes.attr({
-                cx: function(d) {
+            nodes.attr("cx", function(d) {
                     return d.x;
-                },
-                cy: function(d) {
+                })
+                .attr("cy", function(d) {
                     return d.y;
-                }
-            });
+                });
         });
 
         var tooltipContainer = d3.select(config.el)
             .append('div')
-            .attr({
-                id: 'radviz-tooltip'
-            });
+            .attr("id", 'radviz-tooltip');
+
         var tooltip = tooltipComponent(tooltipContainer.node());
 
         return this;
@@ -245,7 +216,7 @@ var radvizComponent = function() {
 
         var normalizationScales = {};
         config.dimensions.forEach(function(dimension) {
-            normalizationScales[dimension] = d3.scale.linear().domain(d3.extent(data.map(function(d, i) {
+            normalizationScales[dimension] = d3.scaleLinear().domain(d3.extent(data.map(function(d, i) {
                 return d[dimension];
             }))).range([0, 1]);
         });
@@ -264,7 +235,7 @@ var radvizComponent = function() {
         render: render
     };
 
-    d3.rebind(exports, events, 'on');
+    utils.rebind(exports, events, 'on');
 
     return exports;
 };

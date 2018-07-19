@@ -1,3 +1,10 @@
+function d3_rebind(target, source, method) {
+    return function() {
+        var value = method.apply(source, arguments);
+        return value === source ? target : value;
+    };
+}
+
 var utils = {
     merge: function(obj1, obj2) {
         for(var p in obj2) {
@@ -29,6 +36,14 @@ var utils = {
 
     appendHtmlToNode: function(htmlString, parent) {
         return parent.appendChild(document.importNode(new DOMParser().parseFromString(htmlString, 'text/html').body.childNodes[0], true));
+    },
+
+    rebind: function(target, source) {
+        var i = 1,
+            n = arguments.length,
+            method;
+        while (++i < n) target[method = arguments[i]] = d3_rebind(target, source, source[method]);
+        return target;
     }
 };
 
